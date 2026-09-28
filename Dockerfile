@@ -41,5 +41,7 @@ USER tutor
 
 EXPOSE 8000
 
-# gunicorn: 2 workers x 4 threads, 120s timeout (Groq calls can take up to 90s).
-CMD ["sh", "-c", "gunicorn -w 2 --threads 4 --timeout 120 -b 0.0.0.0:${PORT:-8000} app:app"]
+# gunicorn: 4 threads, 120s timeout (Groq calls can take up to 90s).
+# Worker count is overridable: set WEB_CONCURRENCY=1 on 512MB hosts (Render free)
+# to leave memory headroom for javac/g++ subprocesses.
+CMD ["sh", "-c", "gunicorn -w ${WEB_CONCURRENCY:-2} --threads 4 --timeout 120 -b 0.0.0.0:${PORT:-8000} app:app"]

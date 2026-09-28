@@ -46,17 +46,68 @@ Then register a user, run one AI analysis, and submit one challenge.
 
 ---
 
-## Alternative PaaS: Render
+## 🆓 Free, no card: Render free tier (fastest zero-cost path)
 
-1. <https://render.com> → **New → Web Service** → connect the GitHub repo.
-2. Runtime **Docker**; Render finds `cs_new/Dockerfile` (set *Docker Root
-   Directory* = `cs_new` if your repo root is the parent folder).
-3. Environment variables: same three as above (`SECRET_KEY`, `GROQ_API_KEY`,
-   `DATABASE_DIR=/data`).
-4. **Disks → Add Disk** → mount path `/data`, 1 GB.
-5. Create Web Service → URL `https://<app>.onrender.com`.
-> ⚠️ Render's free tier has **no persistent disk** — the DB resets on redeploy.
-> The free tier also sleeps after 15 min idle (first request is slow).
+Click-by-click, ~10 minutes, no credit card:
+
+1. Push the repo to GitHub (see git steps in the Railway section below).
+2. <https://dashboard.render.com> → sign in with GitHub → **New + → Web Service**.
+3. Pick the repo. If your repo root is the *parent* folder, set **Docker Root
+   Directory** = `cs_new`; if the repo root *is* `cs_new`, leave blank.
+4. **Instance Type: Free** (512 MB RAM). **Region**: closest to you.
+5. **Environment Variables** → add all three:
+   | Key | Value |
+   |---|---|
+   | `SECRET_KEY` | generated via `python -c "import secrets; print(secrets.token_hex(32))"` |
+   | `GROQ_API_KEY` | your key (rotate the old one — it lived in a local `.env`) |
+   | `DATABASE_DIR` | `/tmp` (ephemeral) — see the disk warning below |
+   | `WEB_CONCURRENCY` | `1` (fits javac/g++ into 512 MB) |
+6. **Create Web Service** → first build takes ~5–8 min (compilers install) →
+   live at `https://<app>.onrender.com`.
+
+**Free-tier limits (know before you demo):**
+- **Ephemeral disk** — `DATABASE_DIR=/tmp` means all accounts/history **wipe on
+  every sleep, redeploy, or restart**. Render free has no persistent disk.
+- **Spins down after ~15 min idle** → first visitor waits ~50 s for spin-up.
+- 512 MB RAM: Java/C++ challenges *may* fail under concurrent load; Python/JS fine.
+- Bandwidth 100 GB/mo — plenty for a demo.
+
+**Verdict:** perfect for showcasing/class demos where data loss between visits
+is acceptable. If users must keep accounts, use Oracle Always-Free (below) or a
+paid plan (~$7/mo) that adds a persistent disk.
+
+---
+
+## 💰 Paid alternative: Railway (~$5/mo)
+
+Full click-by-click steps are in **"Option 2 (recommended): Railway"** at the
+top of this guide — same Dockerfile, same variables. What you gain over free
+Render: **Volumes → New Volume → mount `/data`** makes the SQLite DB persist
+across redeploys, no spin-downs, no 50 s cold starts.
+
+---
+
+## 🆓 Free forever: Oracle Cloud Always-Free VM (recommended zero-cost path)
+
+Best free option: 4 ARM cores + 24 GB RAM across 2 instances (or 1× 2 OCPU/12 GB),
+no expiry, data persists. Card needed **only for identity check** — never charged
+on Always-Free resources.
+
+1. **Sign up** — <https://oracle.com/cloud/free> → *Start for free*. Choose the home
+   region closest to you (permanent). Verify email + card. Wait for provisioning.
+2. **Create the VM** — Compute → Instances → Create Instance:
+   - Image: **Ubuntu 22.04**
+   - Shape: **VM.Standard.A1.Flex (Ampere ARM)**, 2 OCPU, **12 GB RAM** (Always Free)
+   - SSH keys: download the **private key** and keep it safe
+   - If you hit "Out of capacity": retry later / try another availability domain.
+3. **Open web ports** — Instance details → Subnet → Security List → Add Ingress Rules:
+   Source `0.0.0.0/0`, TCP **80** and **443**.
+4. **SSH in** and follow the Option 1 runbook below verbatim:
+   ```bash
+   ssh -i <private-key> ubuntu@<PUBLIC_IP>
+   ```
+   (Upload code without git via: `scp -i <private-key> -r cs_new ubuntu@<PUBLIC_IP>:~/`)
+5. Continue at **"Option 1 (DIY): Ubuntu VPS"** step 1. Everything else is identical.
 
 ---
 
@@ -169,6 +220,7 @@ sudo docker run -d --name cs-tutor --restart always \
 | `GROQ_API_KEY` | ✅ | AI features; rotate the previously local one |
 | `HF_TOKEN` | optional | read by `config.py`, currently unused |
 | `DATABASE_DIR` | PaaS only | point at the mounted volume (`/data`); unset = `backend/` |
+| `WEB_CONCURRENCY` | low-RAM hosts | set `1` on Render free (512 MB); default is 2 |
 
 ## Post-deploy checklist
 - [ ] Register + login works over HTTPS

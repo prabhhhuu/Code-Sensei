@@ -89,7 +89,7 @@ def analyse():
     code     = data.get("code", "").strip()
     language = data.get("language", "python")
     mode     = data.get("mode", "explain")
-    model    = data.get("model", "qwen-fast")
+    model    = data.get("model", "gpt-oss-120b")
 
     if not code:
         return jsonify({"error": "No code provided"}), 400
