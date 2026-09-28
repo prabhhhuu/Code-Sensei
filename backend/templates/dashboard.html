@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Code Sensei{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* ── Stats ───────────────────────────────── */
+    .stats-row {
+        display: grid; grid-template-columns: repeat(4,1fr);
+        gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 20px 24px;
+        display: flex; flex-direction: column; gap: 6px;
+        transition: border-color 0.25s, transform 0.25s, background 0.25s;
+        animation: fadeUp 0.4s ease both;
+    }
+    .stat-card:nth-child(1){animation-delay:.05s}
+    .stat-card:nth-child(2){animation-delay:.10s}
+    .stat-card:nth-child(3){animation-delay:.15s}
+    .stat-card:nth-child(4){animation-delay:.20s}
+    .stat-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .stat-label {
+        font-size: 11px; font-weight: 600; letter-spacing: .12em;
+        text-transform: uppercase; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .stat-value {
+        font-size: 38px; font-weight: 700; color: var(--accent);
+        font-family: 'JetBrains Mono', monospace; line-height: 1;
+        transition: color 0.2s;
+    }
+    .stat-card:hover .stat-value { color: var(--text); }
+    .stat-sub { font-size: 12px; color: var(--muted); }
+
+    /* ── Charts ──────────────────────────────── */
+    .charts-row {
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px; margin-bottom: 24px;
+        animation: fadeUp 0.4s ease 0.25s both;
+    }
+    .chart-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 22px 24px;
+        transition: border-color 0.25s, background 0.25s;
+    }
+    .chart-card:hover { border-color: var(--accent); }
+    .chart-title {
+        font-size: 11px; font-weight: 600; letter-spacing: .12em;
+        text-transform: uppercase; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace; margin-bottom: 18px;
+    }
+    .chart-wrap { position: relative; width: 100%; height: 220px; }
+    .chart-empty {
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 8px;
+        height: 220px; color: var(--muted);
+        font-size: 13px; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Activity ────────────────────────────── */
+    .activity-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 22px 24px;
+        animation: fadeUp 0.4s ease 0.35s both;
+        transition: background 0.25s, border-color 0.25s;
+    }
+    .activity-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    }
+    .activity-title {
+        font-size: 11px; font-weight: 600; letter-spacing: .12em;
+        text-transform: uppercase; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .activity-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .activity-table th {
+        text-align: left; padding: 8px 12px;
+        font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+        color: var(--muted); border-bottom: 1px solid var(--border);
+        font-family: 'JetBrains Mono', monospace; font-weight: 400;
+    }
+    .activity-table td {
+        padding: 11px 12px;
+        border-bottom: 1px solid rgba(128,128,128,0.08);
+        color: var(--text); vertical-align: middle;
+        transition: color 0.25s;
+    }
+    .activity-table tr:last-child td { border-bottom: none; }
+    .activity-table tbody tr:hover td { background: rgba(8,145,178,0.04); }
+
+    .view-link {
+        color: var(--accent); text-decoration: none;
+        font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    }
+    .view-link:hover { text-decoration: underline; }
+
+    .empty-msg { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+    .empty-msg a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 1200px) {
+        .stats-row  { grid-template-columns: repeat(2,1fr); }
+        .charts-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+        .charts-row { grid-template-columns: 1fr; }
+        .stats-row  { grid-template-columns: repeat(2,1fr); }
+    }
+
+    /* ── Challenges ──────────────────────────── */
+    .ch-summary-row {
+        display: grid; grid-template-columns: repeat(3,1fr);
+        gap: 16px; margin-bottom: 24px;
+        animation: fadeUp 0.4s ease 0.22s both;
+    }
+    .ch-summary-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 18px 22px;
+        display: flex; align-items: center; gap: 14px;
+        transition: border-color 0.25s, transform 0.2s;
+        text-decoration: none; color: inherit;
+    }
+    .ch-summary-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .ch-summary-icon { font-size: 28px; flex-shrink: 0; }
+    .ch-summary-val  { font-size: 28px; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .ch-summary-card.green .ch-summary-val { color: var(--green); }
+    .ch-summary-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .1em; font-family: 'JetBrains Mono', monospace; }
+
+    .ch-section-label {
+        font-size: 11px; font-weight: 700; letter-spacing: .14em;
+        text-transform: uppercase; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+        margin-bottom: 14px; margin-top: 8px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .ch-section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    .ch-recent-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 20px 24px;
+        margin-bottom: 24px;
+        animation: fadeUp 0.4s ease 0.3s both;
+    }
+    .ch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ch-table th { text-align:left; padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; }
+    .ch-table td { padding:10px 12px; border-bottom:1px solid rgba(128,128,128,0.07); color:var(--text); vertical-align:middle; }
+    .ch-table tr:last-child td { border-bottom:none; }
+    .ch-table tbody tr:hover td { background:rgba(0,229,192,0.03); }
+    .score-bar-wrap { display:flex; align-items:center; gap:8px; }
+    .score-bar-bg   { flex:1; height:5px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+    .score-bar-fill { height:100%; border-radius:4px; }
+    .score-pct { font-size:11px; font-family:'JetBrains Mono',monospace; min-width:32px; text-align:right; }
+    .ch-cta { text-align:center; padding:28px; color:var(--muted); font-size:14px; }
+    .ch-cta a { color:var(--accent); text-decoration:none; font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Your Progress Dashboard</h1>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" data-target="{{ stats.total_submissions if stats else 0 }}">0</div>
+        <div class="stat-sub">All submissions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Streak</div>
+        <div class="stat-value" data-target="{{ stats.current_streak if stats else 0 }}">0</div>
+        <div class="stat-sub">Current days</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Best</div>
+        <div class="stat-value" data-target="{{ stats.longest_streak if stats else 0 }}">0</div>
+        <div class="stat-sub">Longest streak</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Languages</div>
+        <div class="stat-value" data-target="{{ stats.languages_used|length if stats and stats.languages_used else 0 }}">0</div>
+        <div class="stat-sub">Used so far</div>
+    </div>
+</div>
+
+
+<!-- ── Coding Challenges ───────────────────────────────── -->
+<div class="ch-section-label">🧩 Coding Challenges</div>
+<div class="ch-summary-row">
+    <a class="ch-summary-card" href="/challenges">
+        <div class="ch-summary-icon">🎯</div>
+        <div>
+            <div class="ch-summary-val" data-target-ch="{{ ch_total }}">0</div>
+            <div class="ch-summary-label">Attempted</div>
+        </div>
+    </a>
+    <a class="ch-summary-card green" href="/challenges">
+        <div class="ch-summary-icon">✅</div>
+        <div>
+            <div class="ch-summary-val" data-target-ch="{{ ch_solved }}">0</div>
+            <div class="ch-summary-label">Solved</div>
+        </div>
+    </a>
+    <a class="ch-summary-card" href="/challenges">
+        <div class="ch-summary-icon">📋</div>
+        <div>
+            <div class="ch-summary-val" data-target-ch="8">0</div>
+            <div class="ch-summary-label">Total Available</div>
+        </div>
+    </a>
+</div>
+
+{% if ch_recent %}
+<div class="ch-recent-card">
+    <table class="ch-table">
+        <thead><tr><th>Challenge</th><th>Difficulty</th><th>Tests</th><th>Result</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+        {% for a in ch_recent %}
+        {% set pct = ((a.score / a.total) * 100)|round|int if a.total else 0 %}
+        {% set bc = '#22c55e' if a.passed else '#fbbf24' if pct >= 50 else '#f87171' %}
+        <tr>
+            <td style="font-weight:600">{{ a.title }}</td>
+            <td><span class="badge badge-{{ a.difficulty }}">{{ a.difficulty }}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:700">{{ a.score }}/{{ a.total }}</td>
+            <td style="min-width:120px">
+                <div class="score-bar-wrap">
+                    <div class="score-bar-bg"><div class="score-bar-fill" style="width:{{ pct }}%;background:{{ bc }}"></div></div>
+                    <span class="score-pct" style="color:{{ bc }}">{% if a.passed %}✅{% else %}{{ pct }}%{% endif %}</span>
+                </div>
+            </td>
+            <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">{{ a.created_at[:10] if a.created_at else '—' }}</td>
+            <td><a class="view-link" href="/challenges/{{ a.challenge_id }}">Retry →</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="ch-cta">No challenges attempted yet — <a href="/challenges">start solving →</a></div>
+{% endif %}
+
+<div class="charts-row">
+    <div class="chart-card">
+        <div class="chart-title">Language Usage</div>
+        <div class="chart-wrap" id="langWrap"><canvas id="langChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Difficulty Breakdown</div>
+        <div class="chart-wrap" id="diffWrap"><canvas id="diffChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title">Mode Usage</div>
+        <div class="chart-wrap" id="modeWrap"><canvas id="modeChart"></canvas></div>
+    </div>
+</div>
+
+<div class="activity-card">
+    <div class="activity-header">
+        <div class="activity-title">Recent Activity</div>
+        <div class="filter-wrap">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="explain">Explain</button>
+            <button class="filter-btn" data-filter="improve">Improve</button>
+            <button class="filter-btn" data-filter="optimize">Optimize</button>
+            <button class="filter-btn" data-filter="security">Security</button>
+        </div>
+    </div>
+
+    {% if history %}
+    <table class="activity-table" id="activityTable">
+        <thead>
+            <tr>
+                <th>Language</th><th>Mode</th><th>Difficulty</th><th>Date</th><th>Preview</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in history %}
+            <tr data-mode="{{ item.mode|lower }}">
+                <td><span class="badge badge-lang">{{ item.language }}</span></td>
+                <td><span class="badge badge-mode">{{ item.mode }}</span></td>
+                <td>
+                    {% if item.difficulty %}
+                    <span class="badge badge-{{ item.difficulty|lower }}">{{ item.difficulty }}</span>
+                    {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+                </td>
+                <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">
+                    {{ item.created_at[:10] if item.created_at else '—' }}
+                </td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    {{ item.code[:70] }}{% if item.code|length > 70 %}…{% endif %}
+                </td>
+                <td><a class="view-link" href="/history">View →</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">No submissions yet — <a href="/editor">write some code!</a></div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var langData = {{ language_stats   | default([]) | tojson | safe }};
+var diffData = {{ difficulty_stats | default([]) | tojson | safe }};
+var modeData = {{ mode_stats       | default([]) | tojson | safe }};
+
+/* Detect current theme colors for Chart.js */
+function getStyle(prop) {
+    return getComputedStyle(document.body).getPropertyValue(prop).trim();
+}
+
+function PALETTE() {
+    var light = document.body.classList.contains('light-mode');
+    return light
+        ? ['#0891b2','#16a34a','#d97706','#dc2626','#7c3aed','#0d9488','#db2777']
+        : ['#00e5c0','#22c55e','#3b82f6','#f59e0b','#f87171','#a78bfa','#ec4899'];
+}
+
+function chartDefaults() {
+    Chart.defaults.color       = getStyle('--muted') || '#8892b0';
+    Chart.defaults.font.family = "'JetBrains Mono', monospace";
+    Chart.defaults.font.size   = 11;
+}
+
+function tooltipStyle() {
+    var light = document.body.classList.contains('light-mode');
+    return {
+        backgroundColor: light ? '#ffffff' : '#1a2f4a',
+        borderColor:     getStyle('--accent') || '#00e5c0',
+        borderWidth: 1, padding: 10,
+        titleColor: light ? '#1e293b' : '#ccd6f6',
+        bodyColor:  light ? '#64748b' : '#8892b0'
+    };
+}
+
+var langChartInst, diffChartInst, modeChartInst;
+
+function emptyChart(wrapId, msg) {
+    document.getElementById(wrapId).innerHTML =
+        '<div class="chart-empty"><span style="font-size:30px">📊</span><span>' + msg + '</span></div>';
+}
+
+function buildLang() {
+    if (!langData.length) { emptyChart('langWrap','No submissions yet'); return; }
+    var p = PALETTE();
+    if (langChartInst) langChartInst.destroy();
+    langChartInst = new Chart(document.getElementById('langChart'), {
+        type: 'doughnut',
+        data: {
+            labels:   langData.map(function(d){ return d.language; }),
+            datasets: [{ data: langData.map(function(d){ return d.count; }),
+                backgroundColor: p, borderColor: getStyle('--bg2'), borderWidth: 3, hoverOffset: 10 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '58%',
+            plugins: {
+                legend: { position:'right', labels:{ boxWidth:12, padding:14, color: getStyle('--text'), font:{size:12} } },
+                tooltip: Object.assign({ callbacks: { label: function(c){
+                    var t = c.dataset.data.reduce(function(a,b){return a+b;},0);
+                    return '  '+c.label+': '+c.parsed+' ('+Math.round(c.parsed/t*100)+'%)';
+                }}}, tooltipStyle())
+            }
+        }
+    });
+}
+
+function buildDiff() {
+    if (!diffData.length) { emptyChart('diffWrap','Analyze some code first'); return; }
+    var light = document.body.classList.contains('light-mode');
+    var colors = diffData.map(function(d){
+        var k=(d.difficulty||'').toLowerCase();
+        return k==='beginner'||k==='easy' ? (light?'#15803d':'#22c55e')
+             : k==='medium'               ? (light?'#b45309':'#f59e0b')
+             :                             (light?'#b91c1c':'#f87171');
+    });
+    if (diffChartInst) diffChartInst.destroy();
+    diffChartInst = new Chart(document.getElementById('diffChart'), {
+        type: 'bar',
+        data: {
+            labels:   diffData.map(function(d){ return d.difficulty||'Unknown'; }),
+            datasets: [{ label:'Submissions', data: diffData.map(function(d){ return d.count; }),
+                backgroundColor: colors, borderRadius:8, borderSkipped:false }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend:{display:false}, tooltip: tooltipStyle() },
+            scales: {
+                y:{ beginAtZero:true, grid:{color:'rgba(128,128,128,0.1)'}, ticks:{color: getStyle('--muted'), stepSize:1} },
+                x:{ grid:{display:false}, ticks:{color: getStyle('--muted')} }
+            }
+        }
+    });
+}
+
+function buildMode() {
+    if (!modeData.length) { emptyChart('modeWrap','No submissions yet'); return; }
+    var p = PALETTE();
+    if (modeChartInst) modeChartInst.destroy();
+    modeChartInst = new Chart(document.getElementById('modeChart'), {
+        type: 'polarArea',
+        data: {
+            labels:   modeData.map(function(d){ return d.mode; }),
+            datasets: [{ data: modeData.map(function(d){ return d.count; }),
+                backgroundColor: p.map(function(c){ return c+'bb'; }),
+                borderColor: p, borderWidth: 1 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position:'right', labels:{ boxWidth:12, padding:12, color: getStyle('--text'), font:{size:12} } },
+                tooltip: tooltipStyle()
+            },
+            scales: { r:{ grid:{color:'rgba(128,128,128,0.1)'}, ticks:{display:false} } }
+        }
+    });
+}
+
+function rebuildCharts() {
+    chartDefaults();
+    var lw = document.getElementById('langWrap');
+    var dw = document.getElementById('diffWrap');
+    var mw = document.getElementById('modeWrap');
+    if (lw) lw.innerHTML = '<canvas id="langChart"></canvas>';
+    if (dw) dw.innerHTML = '<canvas id="diffChart"></canvas>';
+    if (mw) mw.innerHTML = '<canvas id="modeChart"></canvas>';
+    buildLang(); buildDiff(); buildMode();
+}
+
+/* Count-up animation */
+function countUp(el) {
+    var target = parseInt(el.dataset.target, 10) || 0;
+    if (!target) return;
+    var start = performance.now(), dur = 900;
+    function step(now) {
+        var t = Math.min((now-start)/dur, 1);
+        var e = 1-Math.pow(1-t, 3);
+        el.textContent = Math.round(e*target);
+        if (t < 1) requestAnimationFrame(step); else el.textContent = target;
+    }
+    requestAnimationFrame(step);
+}
+
+/* Filter */
+document.querySelectorAll('.filter-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+        document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        this.classList.add('active');
+        var f = this.dataset.filter;
+        document.querySelectorAll('#activityTable tbody tr').forEach(function(row){
+            row.style.display = (f==='all'||row.dataset.mode===f) ? '' : 'none';
+        });
+    });
+});
+
+/* Rebuild charts when theme switches */
+new MutationObserver(rebuildCharts).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+document.addEventListener('DOMContentLoaded', function(){
+    chartDefaults();
+    buildLang(); buildDiff(); buildMode();
+    document.querySelectorAll('.stat-value').forEach(countUp);
+    document.querySelectorAll('[data-target-ch]').forEach(function(el){
+        var target = parseInt(el.dataset.targetCh, 10) || 0;
+        if (!target) return;
+        var start = performance.now(), dur = 900;
+        function step(now) {
+            var t = Math.min((now-start)/dur, 1), e = 1-Math.pow(1-t,3);
+            el.textContent = Math.round(e*target);
+            if (t < 1) requestAnimationFrame(step); else el.textContent = target;
+        }
+        requestAnimationFrame(step);
+    });
+
+});
+</script>
+{% endblock %}

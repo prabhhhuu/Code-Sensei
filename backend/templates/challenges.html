@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Challenges — Code Sensei{% endblock %}
+
+{% block head %}
+<style>
+    .ch-page-header {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        animation: fadeUp 0.3s ease both;
+    }
+    .ch-sub  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .ch-stat-row { display: flex; gap: 20px; }
+    .ch-stat { font-size: 13px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: center; }
+    .ch-stat strong { display: block; font-size: 22px; color: var(--accent); }
+
+    /* Difficulty filter bar */
+    .filter-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; animation: fadeUp 0.3s ease 0.05s both; }
+
+    /* Progress bar across top */
+    .progress-section {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+        animation: fadeUp 0.3s ease 0.04s both; box-shadow: var(--shadow);
+    }
+    .progress-label { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .progress-label span { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+    .progress-label strong { color: var(--accent); }
+    .prog-bar-bg { background: var(--bg3); border-radius: 8px; height: 8px; overflow: hidden; }
+    .prog-bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--green), var(--accent)); transition: width 0.6s ease; }
+
+    /* Category section */
+    .category-section { margin-bottom: 28px; animation: fadeUp 0.4s ease 0.1s both; }
+    .category-header {
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 10px;
+    }
+    .category-title {
+        font-size: 13px; font-weight: 700; color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        text-transform: uppercase; letter-spacing: .1em;
+    }
+    .category-line { flex: 1; height: 1px; background: var(--border); }
+    .category-count { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* Challenge row */
+    .ch-row {
+        display: grid;
+        grid-template-columns: 40px 1fr auto auto auto;
+        align-items: center; gap: 12px;
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 10px; padding: 12px 18px;
+        margin-bottom: 8px;
+        text-decoration: none; color: inherit;
+        transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+        box-shadow: var(--shadow);
+    }
+    .ch-row:hover { border-color: var(--accent); transform: translateX(4px); box-shadow: 0 4px 20px rgba(0,229,192,0.08); }
+    .ch-row.solved { border-left: 3px solid var(--green); }
+
+    .ch-num  { font-size: 12px; font-weight: 700; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .ch-info { }
+    .ch-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .ch-tags  { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ch-tag   { font-size: 10px; padding: 1px 7px; border-radius: 8px; background: var(--bg3); color: var(--muted); font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); }
+
+    .diff-badge { font-size: 10px; font-weight: 700; padding: 3px 11px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .diff-easy   { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .diff-medium { background: rgba(251,191,36,.15); color: var(--warn); }
+    .diff-hard   { background: rgba(248,113,113,.15);color: var(--danger); }
+
+    .solved-icon { font-size: 16px; min-width: 20px; text-align: center; }
+    .ch-arrow { color: var(--muted); font-size: 14px; transition: color 0.2s; }
+    .ch-row:hover .ch-arrow { color: var(--accent); }
+
+    @media (max-width:600px) { .ch-row { grid-template-columns: 30px 1fr auto auto; } .ch-arrow { display: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="ch-page-header">
+    <div>
+        <h1 class="page-title" style="margin-bottom:4px">Coding Challenges</h1>
+        <p class="ch-sub">8 categories · 3 difficulty levels each · 24 total problems</p>
+    </div>
+    <div class="ch-stat-row">
+        <div class="ch-stat"><strong>{{ solved|length }}</strong>Solved</div>
+        <div class="ch-stat"><strong>{{ challenges|length }}</strong>Total</div>
+    </div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-section">
+    <div class="progress-label">
+        <span>Overall Progress</span>
+        <span><strong>{{ solved|length }}</strong> / {{ challenges|length }} solved</span>
+    </div>
+    <div class="prog-bar-bg">
+        <div class="prog-bar-fill" style="width: {{ ((solved|length / challenges|length) * 100)|round|int if challenges else 0 }}%"></div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="filter-row">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="easy">🟢 Easy</button>
+    <button class="filter-btn" data-filter="medium">🟡 Medium</button>
+    <button class="filter-btn" data-filter="hard">🔴 Hard</button>
+</div>
+
+<!-- Grouped by category -->
+{% set categories = [] %}
+{% for ch in challenges %}{% if ch.category not in categories %}{% set _ = categories.append(ch.category) %}{% endif %}{% endfor %}
+
+{% for cat in categories %}
+{% set cat_challenges = challenges | selectattr("category", "equalto", cat) | list %}
+{% set cat_solved = cat_challenges | selectattr("id", "in", solved) | list %}
+
+<div class="category-section" data-category="{{ cat }}">
+    <div class="category-header">
+        <div class="category-title">{{ cat }}</div>
+        <div class="category-line"></div>
+        <div class="category-count">{{ cat_solved|length }}/{{ cat_challenges|length }}</div>
+    </div>
+
+    {% for ch in cat_challenges %}
+    <a href="/challenges/{{ ch.id }}"
+       class="ch-row {% if ch.id in solved %}solved{% endif %}"
+       data-diff="{{ ch.difficulty }}">
+        <div class="ch-num">#{{ ch.id }}</div>
+        <div class="ch-info">
+            <div class="ch-title">{{ ch.title }}</div>
+            <div class="ch-tags">
+                {% for tag in ch.tags %}<span class="ch-tag">{{ tag }}</span>{% endfor %}
+            </div>
+        </div>
+        <span class="diff-badge diff-{{ ch.difficulty }}">{{ ch.difficulty }}</span>
+        <span class="solved-icon">{% if ch.id in solved %}✅{% else %}<span style="opacity:0.2">⭕</span>{% endif %}</span>
+        <span class="ch-arrow">→</span>
+    </a>
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        this.classList.add('active');
+        var f = this.dataset.filter;
+        document.querySelectorAll('.ch-row').forEach(function(row) {
+            row.style.display = (f === 'all' || row.dataset.diff === f) ? '' : 'none';
+        });
+        // Hide empty category headers
+        document.querySelectorAll('.category-section').forEach(function(sec) {
+            var visible = Array.from(sec.querySelectorAll('.ch-row')).some(function(r){ return r.style.display !== 'none'; });
+            sec.style.display = visible ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

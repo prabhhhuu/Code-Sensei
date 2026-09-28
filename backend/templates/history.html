@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block title %}History — Code Sensei{% endblock %}
+
+{% block head %}
+<style>
+    .history-controls {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        animation: fadeUp 0.3s ease both;
+    }
+
+    .search-wrap { position: relative; }
+    .search-icon {
+        position: absolute; left: 11px; top: 50%;
+        transform: translateY(-50%); color: var(--muted);
+        font-size: 14px; pointer-events: none;
+    }
+    .search-input {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: var(--radius); color: var(--text);
+        padding: 8px 14px 8px 36px; font-size: 13px;
+        font-family: 'Syne', sans-serif; outline: none; width: 220px;
+        transition: border-color 0.2s, background 0.25s, color 0.25s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); opacity: 0.6; }
+
+    .history-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .history-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 12px; overflow: hidden;
+        transition: border-color 0.25s, transform 0.2s, background 0.25s;
+        animation: fadeUp 0.4s ease both;
+    }
+    .history-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+    .history-card-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+        background: var(--bg2); transition: background 0.25s, border-color 0.25s;
+    }
+    .history-date {
+        font-size: 11px; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace; margin-left: auto;
+    }
+
+    .card-actions { display: flex; gap: 6px; align-items: center; }
+    .card-btn {
+        background: var(--bg3); border: 1px solid var(--border);
+        border-radius: 6px; color: var(--muted);
+        padding: 3px 10px; font-size: 11px;
+        font-family: 'JetBrains Mono', monospace; cursor: pointer;
+        transition: all 0.2s; display: flex; align-items: center; gap: 4px;
+        white-space: nowrap;
+    }
+    .card-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .card-btn.copied { border-color: var(--green); color: var(--green); }
+    .card-btn.delete-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    .history-code {
+        background: var(--bg); padding: 14px 18px;
+        font-family: 'JetBrains Mono', monospace; font-size: 13px;
+        color: var(--muted); line-height: 1.6;
+        overflow-x: auto; white-space: pre;
+        max-height: 120px; overflow-y: hidden;
+        position: relative;
+        transition: background 0.25s, color 0.25s;
+    }
+    .history-code::after {
+        content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+        height: 40px;
+        background: linear-gradient(transparent, var(--bg));
+        pointer-events: none; transition: background 0.25s;
+    }
+    .history-code.expanded { max-height: none; }
+    .history-code.expanded::after { display: none; }
+
+    .history-card-footer {
+        padding: 10px 16px; border-top: 1px solid var(--border);
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        background: var(--bg2); transition: background 0.25s, border-color 0.25s;
+    }
+
+    .expand-btn {
+        font-size: 11px; color: var(--accent); cursor: pointer;
+        background: none; border: none; font-family: 'JetBrains Mono', monospace;
+        padding: 0; margin-left: auto;
+    }
+    .expand-btn:hover { text-decoration: underline; }
+
+    details.result-detail { width: 100%; }
+    details.result-detail summary {
+        font-size: 12px; color: var(--accent); cursor: pointer;
+        font-family: 'JetBrains Mono', monospace; list-style: none;
+        display: flex; align-items: center; gap: 6px;
+        user-select: none;
+    }
+    details.result-detail summary::before { content: '▶'; font-size: 10px; }
+    details.result-detail[open] summary::before { content: '▼'; }
+
+    .result-body {
+        margin-top: 10px; padding: 12px 16px;
+        background: var(--bg3); border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 13px; line-height: 1.7;
+        white-space: pre-wrap; color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        max-height: 300px; overflow-y: auto;
+        transition: background 0.25s, border-color 0.25s;
+    }
+
+    .no-results {
+        text-align: center; padding: 32px; color: var(--muted);
+        font-size: 13px; font-family: 'JetBrains Mono', monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Submission History</h1>
+
+{% if history %}
+<div class="history-controls">
+    <div class="filter-wrap">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="explain">Explain</button>
+        <button class="filter-btn" data-filter="improve">Improve</button>
+        <button class="filter-btn" data-filter="optimize">Optimize</button>
+        <button class="filter-btn" data-filter="security">Security</button>
+        <button class="filter-btn" data-filter="debug">Debug</button>
+    </div>
+    <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="searchInput" type="text" placeholder="Search code…">
+    </div>
+</div>
+
+<div class="history-list" id="historyList">
+    {% for item in history %}
+    <div class="history-card" id="card-{{ item.id }}"
+         data-mode="{{ item.mode|lower }}"
+         data-code="{{ item.code|lower }}"
+         style="animation-delay:{{ loop.index0 * 0.04 }}s">
+
+        <div class="history-card-header">
+            <span class="badge badge-lang">{{ item.language }}</span>
+            <span class="badge badge-mode">{{ item.mode }}</span>
+            {% if item.difficulty %}
+            <span class="badge badge-{{ item.difficulty|lower }}">{{ item.difficulty }}</span>
+            {% endif %}
+            <span class="history-date">{{ item.created_at[:16] if item.created_at else '—' }}</span>
+            <div class="card-actions">
+                <button class="card-btn" onclick="copyCode('{{ item.id }}', this)">📋 Copy</button>
+                <button class="card-btn" onclick="reAnalyze('{{ item.id }}')">↗ Re-analyze</button>
+                <button class="card-btn delete-btn" onclick="confirmDelete('{{ item.id }}')">🗑 Delete</button>
+            </div>
+        </div>
+
+        <div class="history-code" id="code-{{ item.id }}">{{ item.code }}</div>
+
+        <div class="history-card-footer">
+            {% if item.result %}
+            <details class="result-detail">
+                <summary>
+                    View AI Feedback
+                    <button class="card-btn" style="margin-left:8px" onclick="copyResult(event,'{{ item.id }}')">📋 Copy response</button>
+                </summary>
+                <div class="result-body" id="result-{{ item.id }}">{{ item.result }}</div>
+            </details>
+            {% endif %}
+            <button class="expand-btn" onclick="toggleCode('code-{{ item.id }}', this)">Show more</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="no-results" id="noResults" style="display:none">No submissions match your filter.</div>
+
+{% else %}
+<div class="empty-state">
+    <p style="font-size:40px;margin-bottom:16px">📭</p>
+    <p>No submissions yet.</p>
+    <p><a href="/editor">Write your first code →</a></p>
+</div>
+{% endif %}
+
+<!-- Delete modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <h3>Delete this entry?</h3>
+        <p>This will permanently remove the code and AI feedback.</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-danger-solid" onclick="doDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showToast(msg, color) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = color || 'var(--accent)';
+    t.style.color       = color || 'var(--accent)';
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+}
+
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function(){
+        var orig = btn.innerHTML;
+        btn.innerHTML = '✓ Copied'; btn.classList.add('copied');
+        showToast('Copied!');
+        setTimeout(function(){ btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+    });
+}
+
+function copyCode(id, btn) {
+    var el = document.getElementById('code-' + id);
+    if (el) copyText(el.textContent.trim(), btn);
+}
+
+function copyResult(e, id) {
+    e.stopPropagation();
+    var el = document.getElementById('result-' + id);
+    if (el) copyText(el.textContent.trim(), e.currentTarget);
+}
+
+function toggleCode(id, btn) {
+    var el = document.getElementById(id);
+    el.classList.toggle('expanded');
+    btn.textContent = el.classList.contains('expanded') ? 'Show less' : 'Show more';
+}
+
+function reAnalyze(id) {
+    var el   = document.getElementById('code-' + id);
+    var card = document.getElementById('card-' + id);
+    if (!el) return;
+    sessionStorage.setItem('reanalyze_code', el.textContent.trim());
+    sessionStorage.setItem('reanalyze_mode', card.dataset.mode || 'explain');
+    window.location.href = '/editor';
+}
+
+var pendingDeleteId = null;
+
+function confirmDelete(id) {
+    pendingDeleteId = id;
+    document.getElementById('deleteModal').classList.add('open');
+}
+function closeModal() {
+    document.getElementById('deleteModal').classList.remove('open');
+    pendingDeleteId = null;
+}
+function doDelete() {
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    closeModal();
+    fetch('/api/history/' + id, { method: 'DELETE' })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data.success) {
+            var card = document.getElementById('card-' + id);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0'; card.style.transform = 'translateX(20px)';
+                setTimeout(function(){ card.remove(); }, 320);
+            }
+            showToast('Deleted', 'var(--danger)');
+        } else { showToast('Delete failed', 'var(--danger)'); }
+    })
+    .catch(function(){ showToast('Delete failed', 'var(--danger)'); });
+}
+
+document.getElementById('deleteModal').addEventListener('click', function(e){
+    if (e.target === this) closeModal();
+});
+
+/* Filter & search */
+document.querySelectorAll('.filter-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+        document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        this.classList.add('active'); applyFilters();
+    });
+});
+var searchInput = document.getElementById('searchInput');
+if (searchInput) searchInput.addEventListener('input', applyFilters);
+
+function applyFilters() {
+    var filter = document.querySelector('.filter-btn.active').dataset.filter;
+    var query  = searchInput ? searchInput.value.toLowerCase() : '';
+    var cards  = document.querySelectorAll('.history-card');
+    var visible = 0;
+    cards.forEach(function(card){
+        var show = (filter === 'all' || card.dataset.mode === filter) &&
+                   (!query || card.dataset.code.includes(query));
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    var noRes = document.getElementById('noResults');
+    if (noRes) noRes.style.display = visible === 0 ? '' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Register — Code Sensei{% endblock %}
+
+{% block head %}
+<style>
+    .auth-wrap {
+        min-height: calc(100vh - var(--nav-h));
+        display: flex; align-items: center; justify-content: center;
+        padding: 40px 16px; margin-top: 0 !important;
+    }
+    .auth-box { width: 100%; max-width: 420px; animation: fadeUp 0.4s ease both; }
+    .auth-logo { text-align: center; font-size: 40px; margin-bottom: 12px; }
+    .auth-heading { text-align: center; font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .auth-sub { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 28px; font-family: 'JetBrains Mono', monospace; }
+    .auth-card {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 16px; padding: 32px;
+        transition: background 0.25s, border-color 0.25s;
+        box-shadow: var(--shadow);
+    }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
+    .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .auth-footer a:hover { text-decoration: underline; }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .form-input { padding-left: 38px; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-box">
+        <div class="auth-logo">🤖</div>
+        <h1 class="auth-heading">Create account</h1>
+        <p class="auth-sub">Join Code Sensei today</p>
+        <div class="auth-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}{% for cat, msg in messages %}
+                <div class="flash flash-{{ cat }}" style="margin-bottom:16px">{{ msg }}</div>
+                {% endfor %}{% endif %}
+            {% endwith %}
+            <form method="POST" action="{{ url_for('auth.register') }}">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">👤</span>
+                        <input class="form-input" type="text" name="username" placeholder="choose_a_username" required autofocus>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">✉️</span>
+                        <input class="form-input" type="email" name="email" placeholder="you@example.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">🔒</span>
+                        <input class="form-input" type="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px;padding:12px;font-size:15px">
+                    Create account →
+                </button>
+            </form>
+            <div class="divider"></div>
+            <div class="auth-footer">
+                Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

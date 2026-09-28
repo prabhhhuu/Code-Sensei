@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Code Sensei{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ═══ DARK MODE (default) ═══════════════════════════════ */
+        :root {
+            --bg:       #0d1b2a;
+            --bg2:      #112240;
+            --bg3:      #1a2f4a;
+            --bg4:      #0a1628;
+            --accent:   #00e5c0;
+            --green:    #22c55e;
+            --text:     #ccd6f6;
+            --muted:    #8892b0;
+            --border:   rgba(0,229,192,0.12);
+            --danger:   #f87171;
+            --warn:     #fbbf24;
+            --nav-h:    58px;
+            --radius:   10px;
+            --shadow:   0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        /* ═══ LIGHT MODE — one block overrides EVERYTHING ═══════ */
+        body.light-mode {
+            --bg:      #f0f4f8;
+            --bg2:     #ffffff;
+            --bg3:     #e8edf2;
+            --bg4:     #f8fafc;
+            --accent:  #0891b2;
+            --green:   #16a34a;
+            --text:    #1e293b;
+            --muted:   #64748b;
+            --border:  rgba(8,145,178,0.18);
+            --danger:  #dc2626;
+            --warn:    #d97706;
+            --shadow:  0 4px 24px rgba(0,0,0,0.08);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%; min-height: 100vh;
+            background: var(--bg); color: var(--text);
+            font-family: 'Syne', sans-serif;
+            overflow-x: hidden;
+            transition: background 0.25s, color 0.25s;
+        }
+
+        /* ── Navbar ────────────────────────────── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--nav-h);
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; z-index: 200;
+            transition: background 0.25s, border-color 0.25s;
+            box-shadow: var(--shadow);
+        }
+        .navbar-brand {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 17px; font-weight: 700;
+            color: var(--accent); text-decoration: none;
+        }
+        .navbar-brand em { color: var(--text); font-style: normal; }
+        .navbar-links { display: flex; align-items: center; gap: 4px; }
+        .navbar-links a {
+            color: var(--muted); text-decoration: none;
+            font-size: 14px; font-weight: 500;
+            padding: 6px 14px; border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .navbar-links a:hover  { color: var(--text); background: var(--bg3); }
+        .navbar-links a.active { color: var(--accent); font-weight: 700; }
+        .navbar-links a.logout { color: var(--danger); }
+        .navbar-links a.logout:hover { background: rgba(220,38,38,0.08); }
+
+        .btn-theme {
+            background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); width: 36px; height: 36px;
+            border-radius: 8px; cursor: pointer; font-size: 16px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, border-color 0.2s; flex-shrink: 0;
+        }
+        .btn-theme:hover { border-color: var(--accent); }
+
+        /* ── Page ──────────────────────────────── */
+        .page {
+            margin-top: var(--nav-h); width: 100%;
+            padding: 32px 40px 48px;
+            background: var(--bg);
+            transition: background 0.25s;
+        }
+        .page-title { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text); }
+
+        /* ── Card ──────────────────────────────── */
+        .card {
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 22px 24px;
+            transition: border-color 0.25s, background 0.25s;
+        }
+        .card:hover { border-color: var(--accent); }
+        .card-title {
+            font-size: 11px; font-weight: 600; letter-spacing: .12em;
+            text-transform: uppercase; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace; margin-bottom: 18px;
+        }
+
+        /* ── Buttons ───────────────────────────── */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 6px; padding: 10px 20px; border-radius: var(--radius);
+            font-size: 14px; font-weight: 600; font-family: 'Syne', sans-serif;
+            cursor: pointer; border: none;
+            transition: filter 0.2s, background 0.2s, transform 0.15s, color 0.2s;
+            text-decoration: none;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--green); color: #fff; }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-ghost {
+            background: var(--bg3); color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger-solid {
+            background: var(--danger); color: #fff; border: none;
+        }
+        .btn-danger-solid:hover { filter: brightness(1.1); }
+
+        /* ── Form elements ─────────────────────── */
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-label {
+            font-size: 11px; font-weight: 600; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .form-input, .form-select, .form-textarea {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text);
+            padding: 10px 14px; font-size: 14px;
+            font-family: 'Syne', sans-serif; outline: none; width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.25s, color 0.25s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(8,145,178,0.12);
+        }
+        .form-input::placeholder { color: var(--muted); opacity: 0.6; }
+        .form-select option { background: var(--bg3); color: var(--text); }
+
+        /* ── Badges ────────────────────────────── */
+        .badge {
+            display: inline-block; padding: 2px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+        }
+        .badge-lang, .badge-easy, .badge-beginner { background: rgba(34,197,94,.15); color: #4ade80; }
+        .badge-mode                               { background: rgba(0,229,192,.12);  color: var(--accent); }
+        .badge-medium                             { background: rgba(251,191,36,.15); color: var(--warn); }
+        .badge-hard, .badge-advanced              { background: rgba(248,113,113,.15);color: var(--danger); }
+
+        /* badge light-mode overrides */
+        body.light-mode .badge-lang,
+        body.light-mode .badge-easy,
+        body.light-mode .badge-beginner { background: rgba(22,163,74,.12); color: #15803d; }
+        body.light-mode .badge-mode     { background: rgba(8,145,178,.12); color: #0e7490; }
+        body.light-mode .badge-medium   { background: rgba(217,119,6,.12); color: #b45309; }
+        body.light-mode .badge-hard,
+        body.light-mode .badge-advanced { background: rgba(220,38,38,.1);  color: #b91c1c; }
+
+        /* ── Filter pills ──────────────────────── */
+        .filter-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+        .filter-btn {
+            background: var(--bg3); border: 1px solid var(--border);
+            color: var(--muted); font-size: 12px; padding: 5px 16px;
+            border-radius: 20px; cursor: pointer;
+            transition: all 0.2s; font-family: 'Syne', sans-serif;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active {
+            background: var(--accent); color: #fff;
+            border-color: var(--accent); font-weight: 700;
+        }
+        body.light-mode .filter-btn.active { color: #fff; }
+
+        /* ── Flash ─────────────────────────────── */
+        .flash-wrap { margin-bottom: 20px; }
+        .flash {
+            padding: 11px 16px; border-radius: var(--radius);
+            font-size: 13px; margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .flash-success { background: rgba(34,197,94,.1);  color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+        .flash-error   { background: rgba(248,113,113,.1);color: var(--danger); border: 1px solid rgba(248,113,113,.25); }
+        body.light-mode .flash-success { background: rgba(22,163,74,.08); color: #15803d; border-color: rgba(22,163,74,.2); }
+        body.light-mode .flash-error   { background: rgba(220,38,38,.08); color: #b91c1c; border-color: rgba(220,38,38,.2); }
+
+        /* ── Toast ─────────────────────────────── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--bg2); border: 1px solid var(--accent);
+            color: var(--accent); padding: 10px 20px; border-radius: 8px;
+            font-size: 13px; font-family: 'JetBrains Mono', monospace;
+            z-index: 9999; opacity: 0; transform: translateY(10px);
+            transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+            box-shadow: var(--shadow);
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        /* ── Modal ─────────────────────────────── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 500; opacity: 0; pointer-events: none;
+            transition: opacity 0.2s; backdrop-filter: blur(4px);
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px 32px; max-width: 380px; width: 90%;
+            transform: translateY(16px) scale(0.97);
+            transition: transform 0.2s; text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+        .modal h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+        .modal p  { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+        /* ── Empty state ───────────────────────── */
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+        .empty-state p { font-size: 14px; margin-top: 8px; }
+        .empty-state a { color: var(--accent); text-decoration: none; }
+
+        /* ── Scrollbar ─────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .page { padding: 20px 16px 40px; }
+            .navbar { padding: 0 16px; }
+            .navbar-links a { padding: 6px 8px; font-size: 13px; }
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+    <a class="navbar-brand" href="/">🤖 <em>Code Sensei</em></a>
+
+    {% if session.user_id %}
+    <div class="navbar-links">
+        <a href="/editor"    {% if request.path.startswith('/editor')    %}class="active"{% endif %}>Editor</a>
+        <a href="/history"   {% if request.path.startswith('/history')   %}class="active"{% endif %}>History</a>
+        <a href="/challenges" {% if request.path.startswith('/challenges') %}class="active"{% endif %}>Challenges</a>
+        <a href="/dashboard" {% if request.path.startswith('/dashboard') %}class="active"{% endif %}>Dashboard</a>
+        <a href="/shared"    {% if request.path.startswith('/shared')    %}class="active"{% endif %}>Shared Code</a>
+        <a href="/logout" class="logout">Logout</a>
+    </div>
+    {% else %}
+    <div class="navbar-links">
+        <a href="/login"    {% if request.path == '/login'    %}class="active"{% endif %}>Login</a>
+        <a href="/register" {% if request.path == '/register' %}class="active"{% endif %}>Register</a>
+    </div>
+    {% endif %}
+
+    <button class="btn-theme" id="themeToggle" title="Toggle theme">🌙</button>
+</nav>
+
+<div class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-wrap">
+            {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+(function(){
+    var btn   = document.getElementById('themeToggle');
+    var saved = localStorage.getItem('cs-theme') || 'dark';
+    if (saved === 'light') {
+        document.body.classList.add('light-mode');
+        if (btn) btn.textContent = '☀️';
+    }
+    if (btn) {
+        btn.addEventListener('click', function(){
+            document.body.classList.toggle('light-mode');
+            var light = document.body.classList.contains('light-mode');
+            localStorage.setItem('cs-theme', light ? 'light' : 'dark');
+            btn.textContent = light ? '☀️' : '🌙';
+        });
+    }
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

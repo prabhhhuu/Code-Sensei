@@ -1,0 +1,17 @@
+# Keep secrets and local state out of the image build context
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.git/
+.vscode/
+.idea/
+.DS_Store

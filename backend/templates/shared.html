@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Shared Code — Code Sensei{% endblock %}
+
+{% block head %}
+<style>
+    .shared-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        animation: fadeUp 0.3s ease both;
+    }
+
+    .search-wrap { position: relative; }
+    .search-icon {
+        position: absolute; left: 11px; top: 50%;
+        transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none;
+    }
+    .search-input {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: var(--radius); color: var(--text);
+        padding: 8px 14px 8px 36px; font-size: 13px;
+        font-family: 'Syne', sans-serif; outline: none; width: 220px;
+        transition: border-color 0.2s, background 0.25s, color 0.25s;
+    }
+    .search-input::placeholder { color: var(--muted); opacity: 0.6; }
+
+    .coming-soon-box {
+        background: var(--bg2); border: 1px solid var(--border);
+        border-radius: 16px; padding: 64px 40px;
+        text-align: center; animation: fadeUp 0.4s ease both;
+        transition: background 0.25s, border-color 0.25s;
+    }
+
+    .coming-soon-icon { font-size: 52px; margin-bottom: 18px; }
+
+    .coming-soon-title {
+        font-size: 22px; font-weight: 700; color: var(--text);
+        margin-bottom: 10px; transition: color 0.25s;
+    }
+
+    .coming-soon-sub {
+        font-size: 14px; color: var(--muted); margin-bottom: 32px;
+        line-height: 1.7; max-width: 440px;
+        margin-left: auto; margin-right: auto;
+        transition: color 0.25s;
+    }
+
+    .features-list {
+        display: flex; flex-wrap: wrap; gap: 10px;
+        justify-content: center; margin-top: 28px;
+    }
+
+    .feature-chip {
+        background: var(--bg3); border: 1px solid var(--border);
+        border-radius: 20px; padding: 7px 16px;
+        font-size: 12px; color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+        display: flex; align-items: center; gap: 6px;
+        transition: background 0.25s, border-color 0.25s, color 0.25s;
+    }
+    .feature-chip:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shared-header">
+    <h1 class="page-title" style="margin-bottom:0">Shared Snippets</h1>
+    <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" placeholder="Search snippets…" disabled>
+    </div>
+</div>
+
+<div class="coming-soon-box">
+    <div class="coming-soon-icon">🚀</div>
+    <div class="coming-soon-title">Community Snippets Coming Soon</div>
+    <p class="coming-soon-sub">
+        Share your best code with the community, discover snippets from other developers,
+        and learn from real-world examples.
+    </p>
+    <a href="/editor" class="btn btn-primary" style="display:inline-flex;padding:12px 28px">
+        ← Back to Editor
+    </a>
+    <div class="features-list">
+        <div class="feature-chip">⭐ Star snippets</div>
+        <div class="feature-chip">🔀 Fork &amp; remix</div>
+        <div class="feature-chip">💬 Comments</div>
+        <div class="feature-chip">🏷️ Tags &amp; search</div>
+        <div class="feature-chip">📋 One-click copy</div>
+    </div>
+</div>
+{% endblock %}

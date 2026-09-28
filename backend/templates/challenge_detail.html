@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}{{ challenge.title }} — Code Sensei{% endblock %}
+
+{% block head %}
+<style>
+    .page { padding: 0 !important; background: var(--bg4) !important; }
+
+    .ch-shell { display: flex; height: calc(100vh - var(--nav-h)); overflow: hidden; }
+
+    /* ── Left: problem description ─────────── */
+    .problem-panel {
+        width: 420px; min-width: 300px; flex-shrink: 0;
+        background: var(--bg2); border-right: 1px solid var(--border);
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+    .problem-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .problem-title  { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .problem-meta   { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .diff-badge { font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; }
+    .diff-easy   { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .diff-medium { background: rgba(251,191,36,.15); color: var(--warn); }
+    .diff-hard   { background: rgba(248,113,113,.15);color: var(--danger); }
+
+    .tag-pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--bg3); color: var(--muted); font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); }
+
+    .problem-body { flex: 1; overflow-y: auto; padding: 18px 20px; font-size: 13.5px; line-height: 1.8; color: var(--text); }
+    .problem-body p { margin-bottom: 12px; }
+    .problem-body code { background: var(--bg3); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    .example-block { background: var(--bg3); border-radius: 10px; padding: 12px 14px; margin: 12px 0; border: 1px solid var(--border); }
+    .example-label { font-size: 10px; font-weight: 700; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 7px; }
+    .example-row   { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); margin-bottom: 3px; }
+    .example-row span { color: var(--muted); }
+    .example-explain { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+    .section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin: 16px 0 8px; font-family: 'JetBrains Mono', monospace; }
+
+    .back-link { display: flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 12px; padding: 12px 20px; border-top: 1px solid var(--border); transition: color 0.2s; font-family: 'JetBrains Mono', monospace; }
+    .back-link:hover { color: var(--accent); }
+
+    /* ── Right: editor ─────────────────────── */
+    .editor-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .editor-toolbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .toolbar-lang   { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; flex: 1; text-transform: uppercase; letter-spacing: .1em; }
+
+    .btn-run {
+        background: var(--green); color: #fff; border: none; border-radius: var(--radius);
+        padding: 7px 22px; font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
+        cursor: pointer; transition: filter 0.2s, transform 0.15s;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .btn-run:hover { filter: brightness(1.1); }
+    .btn-run:active { transform: scale(0.97); }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+    .btn-reset { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); border-radius: var(--radius); padding: 7px 14px; font-size: 13px; font-family: 'Syne', sans-serif; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+    .code-editor {
+        flex: 1; resize: none; background: var(--bg4); color: var(--text);
+        border: none; outline: none; padding: 18px 20px;
+        font-family: 'JetBrains Mono', monospace; font-size: 14px;
+        line-height: 1.7; tab-size: 4; overflow-y: auto;
+    }
+
+    /* ── Results panel ─────────────────────── */
+    .results-panel { background: var(--bg2); border-top: 1px solid var(--border); flex-shrink: 0; max-height: 46%; display: flex; flex-direction: column; overflow: hidden; }
+    .results-panel.collapsed { max-height: 42px; overflow: hidden; }
+
+    .results-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; cursor: pointer; user-select: none; }
+    .results-title  { font-size: 11px; font-weight: 700; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .1em; flex: 1; }
+    .results-summary { font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+
+    .results-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
+    .test-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 13px; border-radius: 8px; margin-bottom: 8px; border: 1px solid transparent; font-size: 13px; }
+    .test-row.pass { background: rgba(34,197,94,.08);   border-color: rgba(34,197,94,.2); }
+    .test-row.fail { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.2); }
+    .test-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+    .test-info { flex: 1; }
+    .test-fn     { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); margin-bottom: 4px; }
+    .test-detail { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .test-detail .ok  { color: #4ade80; }
+    .test-detail .bad { color: var(--danger); }
+    .test-error  { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--danger); white-space: pre-wrap; margin-top: 4px; }
+
+    .success-banner {
+        background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+        border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
+        display: none; align-items: center; gap: 12px;
+    }
+    .success-banner.show { display: flex; }
+
+    .placeholder-msg { color: var(--muted); font-size: 13px; text-align: center; padding: 20px; font-family: 'JetBrains Mono', monospace; }
+
+    .running-dots span { animation: blink 1s infinite; color: var(--accent); }
+    .running-dots span:nth-child(2){ animation-delay:.2s }
+    .running-dots span:nth-child(3){ animation-delay:.4s }
+    @keyframes blink { 50%{opacity:0} }
+
+    @media (max-width: 800px) {
+        .ch-shell { flex-direction: column; }
+        .problem-panel { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ch-shell">
+
+    <!-- Problem Panel -->
+    <div class="problem-panel">
+        <div class="problem-header">
+            <div class="problem-title">#{{ challenge.id }}. {{ challenge.title }}</div>
+            <div class="problem-meta">
+                {% if challenge.category %}<span class="tag-pill" style="color:var(--accent);border-color:var(--accent)">{{ challenge.category }}</span>{% endif %}
+                <span class="diff-badge diff-{{ challenge.difficulty }}">{{ challenge.difficulty }}</span>
+                {% for tag in challenge.tags %}<span class="tag-pill">{{ tag }}</span>{% endfor %}
+            </div>
+        </div>
+
+        <div class="problem-body">
+            <p>{{ challenge.description | replace('\n', '<br>') | safe }}</p>
+
+            <div class="section-label">Examples</div>
+            {% for ex in challenge.examples %}
+            <div class="example-block">
+                <div class="example-label">Example {{ loop.index }}</div>
+                <div class="example-row"><span>Input:  </span>{{ ex.input }}</div>
+                <div class="example-row"><span>Output: </span>{{ ex.output }}</div>
+                {% if ex.explanation %}<div class="example-explain">{{ ex.explanation }}</div>{% endif %}
+            </div>
+            {% endfor %}
+
+            {% if best %}
+            <div class="section-label">Your Best Attempt</div>
+            <div style="padding:10px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;color:var(--text)">
+                {{ best.score }}/{{ best.total }} tests passed &nbsp;{% if best.passed %}✅ Solved{% else %}❌ Incomplete{% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <a href="/challenges" class="back-link">← All Challenges</a>
+    </div>
+
+    <!-- Editor Panel -->
+    <div class="editor-panel">
+        <div class="editor-toolbar">
+            <select id="langSelect" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:6px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;outline:none;">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="typescript">TypeScript</option>
+            </select>
+            <button class="btn-reset" id="resetBtn">↺ Reset</button>
+            <button class="btn-run"   id="runBtn">▶ Run Code</button>
+        </div>
+
+        <textarea class="code-editor" id="codeEditor" spellcheck="false">{{ challenge.starters.python if challenge.starters else challenge.starter }}</textarea>
+
+        <div class="results-panel" id="resultsPanel">
+            <div class="results-header" id="resultsHeader">
+                <span class="results-title">Test Results</span>
+                <span class="results-summary" id="resultsSummary" style="color:var(--muted)">Not run yet</span>
+                <span id="resultsToggle" style="color:var(--muted);font-size:12px">▼</span>
+            </div>
+            <div class="results-body" id="resultsBody">
+                <div class="placeholder-msg">Click "Run Code" to test against {{ challenge.tests|length }} test cases.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CID      = {{ challenge.id }};
+var STARTERS = {{ (challenge.starters if challenge.starters else {'python': challenge.starter}) | tojson | safe }};
+var STARTER  = STARTERS['python'] || '';
+var editor   = document.getElementById('codeEditor');
+var langSel  = document.getElementById('langSelect');
+
+// Switch starter code when language changes
+langSel.addEventListener('change', function() {
+    var lang = this.value;
+    var newStarter = STARTERS[lang] || STARTERS['python'] || '';
+    editor.value = newStarter;
+    resultsBody.innerHTML = '<div class="placeholder-msg">Language changed to ' + this.options[this.selectedIndex].text + '. Click Run Code to test.</div>';
+    resultsSummary.textContent = 'Not run yet';
+    resultsSummary.style.color = 'var(--muted)';
+});
+var runBtn      = document.getElementById('runBtn');
+var resultsBody = document.getElementById('resultsBody');
+var resultsSummary = document.getElementById('resultsSummary');
+var collapsed   = false;
+
+function showToast(msg, color) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = color || 'var(--accent)';
+    t.style.color = color || 'var(--accent)';
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2400);
+}
+
+/* Tab indent */
+editor.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        var s = this.selectionStart;
+        this.value = this.value.substring(0, s) + '    ' + this.value.substring(this.selectionEnd);
+        this.selectionStart = this.selectionEnd = s + 4;
+    }
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
+});
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+    var lang = langSel.value;
+    editor.value = STARTERS[lang] || STARTERS['python'] || '';
+    resultsBody.innerHTML = '<div class="placeholder-msg">Code reset. Run again when ready.</div>';
+    resultsSummary.textContent = 'Not run yet';
+    resultsSummary.style.color = 'var(--muted)';
+    showToast('Code reset');
+});
+
+document.getElementById('resultsHeader').addEventListener('click', function() {
+    collapsed = !collapsed;
+    document.getElementById('resultsPanel').classList.toggle('collapsed', collapsed);
+    document.getElementById('resultsToggle').textContent = collapsed ? '▲' : '▼';
+});
+
+runBtn.addEventListener('click', runCode);
+
+function runCode() {
+    var code = editor.value.trim();
+    if (!code) { showToast('Write some code first!', 'var(--danger)'); return; }
+
+    collapsed = false;
+    document.getElementById('resultsPanel').classList.remove('collapsed');
+    document.getElementById('resultsToggle').textContent = '▼';
+
+    runBtn.disabled = true;
+    runBtn.innerHTML = '<span class="running-dots"><span>●</span><span>●</span><span>●</span></span>';
+    resultsBody.innerHTML = '<div class="placeholder-msg" style="color:var(--accent)">Running tests…</div>';
+    resultsSummary.textContent = 'Running…';
+    resultsSummary.style.color = 'var(--accent)';
+
+    fetch('/api/challenges/' + CID + '/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, language: langSel.value })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        if (data.error) {
+            resultsBody.innerHTML = '<div class="placeholder-msg" style="color:var(--danger)">Error: ' + esc(data.error) + '</div>';
+            resultsSummary.textContent = 'Error';
+            resultsSummary.style.color = 'var(--danger)';
+            return;
+        }
+        renderResults(data);
+    })
+    .catch(function(err) {
+        resultsBody.innerHTML = '<div class="placeholder-msg" style="color:var(--danger)">Network error: ' + esc(err.message) + '</div>';
+    })
+    .finally(function() {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '▶ Run Code';
+    });
+}
+
+function renderResults(data) {
+    var passed = data.score, total = data.total, allPass = data.passed_all;
+
+    resultsSummary.textContent = passed + '/' + total + ' passed';
+    resultsSummary.style.color = allPass ? '#4ade80' : passed > 0 ? 'var(--warn)' : 'var(--danger)';
+
+    var html = '';
+    if (allPass) {
+        html += '<div class="success-banner show"><span style="font-size:26px">🎉</span><div><strong style="color:#4ade80">All tests passed!</strong><div style="font-size:12px;color:var(--muted)">Challenge solved — great work!</div></div></div>';
+        showToast('All tests passed! 🎉', 'var(--green)');
+    } else {
+        showToast(passed + '/' + total + ' tests passed', passed === 0 ? 'var(--danger)' : 'var(--warn)');
+    }
+
+    data.results.forEach(function(r, i) {
+        html += '<div class="test-row ' + (r.passed ? 'pass' : 'fail') + '">';
+        html += '<div class="test-icon">' + (r.passed ? '✅' : '❌') + '</div>';
+        html += '<div class="test-info">';
+        html += '<div class="test-fn">Test ' + (i+1) + ': ' + esc(r.fn) + '</div>';
+        if (r.error) {
+            html += '<div class="test-error">' + esc(r.error) + '</div>';
+        } else {
+            html += '<div class="test-detail">Expected: <span class="ok">' + esc(r.expected) + '</span>';
+            if (!r.passed) html += ' &nbsp; Got: <span class="bad">' + esc(r.actual) + '</span>';
+            html += '</div>';
+        }
+        html += '</div></div>';
+    });
+
+    resultsBody.innerHTML = html;
+}
+
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}
